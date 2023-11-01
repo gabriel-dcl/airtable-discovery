@@ -1,4 +1,5 @@
 import * as fs from 'fs';
+import path from 'path';
 import 'dotenv/config'
 
 
@@ -27,6 +28,10 @@ const getFormatedName = (name) => {
         return name.replace(/[^a-zA-Z]+/g, '')
 }
 
+const getFileName = (name) => {
+    if (name)
+        return name.replace(/\s/g, "-").replace(/[^a-zA-Z-]+/g, '').replace(/^[-]+([a-zA-Z])/, '$1').toLowerCase()
+}
 
 const defineType = (airtableType, options, data) => {
     switch (airtableType) {
@@ -58,7 +63,7 @@ const defineType = (airtableType, options, data) => {
             if(options){
              const searchedValue = data.tables.find(table => table.id === options.linkedTableId)
                 if(searchedValue)
-                return `${getFormatedName(searchedValue.name)}[]`
+                    return `${searchedValue.name}[]`
             }
 
         case "singleSelect":
@@ -68,7 +73,7 @@ const defineType = (airtableType, options, data) => {
             if(options && options.choices){
                 options.choices.forEach((choice) => choices.push(choice) )
                 choices.map((choice, index) => {
-                 stringToReturn += `"${getFormatedName(choice.name)}"`
+                    stringToReturn += `"${choice.name}"`
                     if(index != choices.length -1)
                         stringToReturn += " | "
                 } )
@@ -99,21 +104,38 @@ const acquireSchema = (data) => {
         table.fields.forEach(field => {
             const type = defineType(field.type, field.options, data);
 
-            fields += `  ${getFormatedName(field.name)}: ${type};\n`
+            if (!type.includes("|"))
+                fields += `  ${getFormatedName(field.name)}: ${getFormatedName(type)};\n`
+            else
+                fields += `  ${getFormatedName(field.name)}: ${type};\n`
+
+
             mappers += `${getFormatedName(field.name)} : item["${field.name}"],\n`
 
-            if(!type.includes("|")
+            if (!type.includes("|")
                 && getFormatedName(type) != getFormatedName(table.name)
                 && !headers.includes(type)
-                &&  !["string", "number", "boolean", "string[]", 'number[]'].includes(type) ){
+                && !["string", "number", "boolean", "string[]", 'number[]'].includes(type)) {
 
                 headers.push(type)
             }
         })
 
-        headers.forEach((item) => {
-            finalString += `import { ${getFormatedName(item)} } from "./${getFormatedName(item)}";\n`
-        })
+
+        if (process.env.NEXT_PROJECT === 'true') {
+
+            headers.forEach((item) => {
+                if (["singleCollaborator", "multipleAttachments", "multipleCollaborators"].includes(getFormatedName(item)))
+                    finalString += `import { ${getFormatedName(item)} } from "../../types/${getFileName(item)}";\n`
+                else
+                    finalString += `import { ${getFormatedName(item)} } from "../../${getFileName(item)}/entities/${getFileName(item)}.entity";\n`
+            })
+        } else {
+            headers.forEach((item) => {
+                finalString += `import { ${getFormatedName(item)} } from "./${getFormatedName(item)}";\n`
+            })
+        }
+
         finalString += `export interface ${getFormatedName(table.name)} { \n`
         finalString += fields
         finalString += `}\n\n`
@@ -121,13 +143,38 @@ const acquireSchema = (data) => {
         mappers += `}})\n  }\n\n`
         finalString += mappers
 
-        fs.writeFile(`./types/${getFormatedName(table.name)}.ts`, finalString, (err) => {
-            if (err)
-                console.log(err);
-            else {
+        if (process.env.NEXT_PROJECT === 'true') {
+
+            try {
+                fs.mkdirSync(`./${getFileName(table.name)}`);
+                fs.mkdirSync(`./${getFileName(table.name)}/entities`);
+            } catch (e) {
+                //console.log(e)
             }
-        });
+            fs.writeFile(`./${getFileName(table.name)}/entities/${getFileName(table.name)}.entity.ts`, finalString, (err) => {
+                if (err)
+                    console.log(err);
+                else {
+                }
+            });
+        } else {
+            fs.writeFile(`./types/${getFormatedName(table.name)}.ts`, finalString, (err) => {
+                if (err)
+                    console.log(err);
+                else {
+                }
+            });
+        }
     })
+
+    fs.copyFile('./node_modules/airtable-discovery/types/multipleAttachments.ts',
+        "./types/multipleAttachments.ts")
+
+    fs.copyFile('./node_modules/airtable-discovery/types/singleCollaborator.ts',
+        "./types/singleCollaborator.ts")
+
+    fs.copyFile('./node_modules/airtable-discovery/types/multipleCollaborators.ts',
+        "./types/multipleCollaborators.ts")
 
     relationTable += "\n}\n"
     fs.writeFile(`./types/utils.ts`, relationTable, (err) => {
