@@ -1,10 +1,13 @@
+#!/usr/bin/env node
+
 import * as fs from 'fs';
-import path from 'path';
 import 'dotenv/config'
 
 
-const baseId = process.env.BASE_ID
-console.log(process.env.AIRTABLE_TOKEN)
+// Access command-line arguments, excluding the first two elements (Node.js and script path).
+const args = process.argv.slice(2);
+
+const baseId = args[0]
 
 var myHeaders = new Headers();
 myHeaders.append("Authorization", `Bearer ${process.env.AIRTABLE_TOKEN}`);
@@ -20,7 +23,6 @@ fetch(`https://api.airtable.com/v0/meta/bases/${baseId}/tables`, requestOptions)
     .then(response => response.text())
     .then(result => acquireSchema(JSON.parse(result)))
     .catch(error => console.log('error', error));
-
 
 
 const getFormatedName = (name) => {
@@ -51,7 +53,7 @@ const defineType = (airtableType, options, data) => {
         case "multipleLookupValues" :
             if(options){
                 let allFields = []
-                    data.tables.map((table) => table.fields.map((field) => allFields.push(field) ))
+                data.tables.map((table) => table.fields.map((field) => allFields.push(field) ))
 
                 const rightField = allFields.find((item) => item.id === options.fieldIdInLinkedTable)
 
@@ -61,7 +63,7 @@ const defineType = (airtableType, options, data) => {
 
         case "multipleRecordLinks":
             if(options){
-             const searchedValue = data.tables.find(table => table.id === options.linkedTableId)
+                const searchedValue = data.tables.find(table => table.id === options.linkedTableId)
                 if(searchedValue)
                     return `${searchedValue.name}[]`
             }
@@ -112,11 +114,11 @@ const acquireSchema = (data) => {
 
             mappers += `${getFormatedName(field.name)} : item["${field.name}"],\n`
 
+
             if (!type.includes("|")
-                && getFormatedName(type) != getFormatedName(table.name)
+                && getFormatedName(field.name) != getFormatedName(table.name)
                 && !headers.includes(type)
                 && !["string", "number", "boolean", "string[]", 'number[]'].includes(type)) {
-
                 headers.push(type)
             }
         })
@@ -146,12 +148,12 @@ const acquireSchema = (data) => {
         if (process.env.NEXT_PROJECT === 'true') {
 
             try {
-                fs.mkdirSync(`./${getFileName(table.name)}`);
-                fs.mkdirSync(`./${getFileName(table.name)}/entities`);
+                fs.mkdirSync(`./src/${getFileName(table.name)}`);
+                fs.mkdirSync(`./src/${getFileName(table.name)}/entities`);
             } catch (e) {
                 //console.log(e)
             }
-            fs.writeFile(`./${getFileName(table.name)}/entities/${getFileName(table.name)}.entity.ts`, finalString, (err) => {
+            fs.writeFile(`./src/${getFileName(table.name)}/entities/${getFileName(table.name)}.entity.ts`, finalString, (err) => {
                 if (err)
                     console.log(err);
                 else {
@@ -167,14 +169,21 @@ const acquireSchema = (data) => {
         }
     })
 
-    fs.copyFile('./node_modules/airtable-discovery/types/multipleAttachments.ts',
-        "./types/multipleAttachments.ts")
 
-    fs.copyFile('./node_modules/airtable-discovery/types/singleCollaborator.ts',
-        "./types/singleCollaborator.ts")
+    try {
+        fs.mkdirSync(`./src/types`);
+    } catch (e) {
 
-    fs.copyFile('./node_modules/airtable-discovery/types/multipleCollaborators.ts',
-        "./types/multipleCollaborators.ts")
+    }
+
+    fs.copyFileSync('./node_modules/airtable-discovery/types/multipleAttachments.ts',
+        "./src/types/multipleAttachments.ts")
+
+    fs.copyFileSync('./node_modules/airtable-discovery/types/singleCollaborator.ts',
+        "./src/types/singleCollaborator.ts")
+
+    fs.copyFileSync('./node_modules/airtable-discovery/types/multipleCollaborators.ts',
+        "./src/types/multipleCollaborators.ts")
 
     relationTable += "\n}\n"
     fs.writeFile(`./types/utils.ts`, relationTable, (err) => {

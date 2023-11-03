@@ -1,6 +1,6 @@
 {
   "name": "airtable-discovery",
-  "version": "0.0.4",
+  "version": "0.1.5",
   "description": "**WARNING : This project is currently the definition of dirtiness**",
   "main": "discoverAirtableSchema.js",
   "type": "module",
@@ -8,7 +8,9 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "get-schema": "node discoverAirtableSchema.js"
   },
-  "bin": "./discoverAirtableSchema.js",
+  "bin": {
+    "get-airtable-schema": "./discoverAirtableSchema.js"
+  },
   "author": "",
   "license": "ISC",
   "dependencies": {
