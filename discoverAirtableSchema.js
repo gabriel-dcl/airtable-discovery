@@ -8,10 +8,10 @@ import 'dotenv/config'
 const args = process.argv.slice(2);
 
 const baseId = args[0]
+const name = args[1]
 
 var myHeaders = new Headers();
 myHeaders.append("Authorization", `Bearer ${process.env.AIRTABLE_TOKEN}`);
-
 
 var requestOptions = {
     method: 'GET',
@@ -23,7 +23,6 @@ fetch(`https://api.airtable.com/v0/meta/bases/${baseId}/tables`, requestOptions)
     .then(response => response.text())
     .then(result => acquireSchema(JSON.parse(result)))
     .catch(error => console.log('error', error));
-
 
 const getFormatedName = (name) => {
     if(name)
@@ -89,13 +88,14 @@ const defineType = (airtableType, options, data) => {
 
 
 const acquireSchema = (data) => {
-    let relationTable = "export enum AirtableRelationTable {\n"
+    let relationTable = `export enum Airtable${name.charAt(0).toUpperCase() + name.slice(1)}RelationTable {\n`
 
     data.tables.forEach(table => {
         let finalString = ''
         let fields = ''
         let mappers =
             `export const getMappedData${getFormatedName(table.name)} = (records: any[]) => {\n
+              const data = records.map((item) => item.fields);\n
          const data = records.map((item) => item.fields) \n
          return data.map((item) => { return { \n
         `
@@ -186,12 +186,8 @@ const acquireSchema = (data) => {
         "./src/types/multipleCollaborators.ts")
 
     relationTable += "\n}\n"
-    fs.writeFile(`./types/utils.ts`, relationTable, (err) => {
+    fs.writeFile(`./src/types/${name}.utils.ts`, relationTable, (err) => {
 
     })
 
 }
-
-
-
-

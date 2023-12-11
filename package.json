@@ -1,6 +1,6 @@
 {
   "name": "airtable-discovery",
-  "version": "0.1.5",
+  "version": "0.1.8",
   "description": "**WARNING : This project is currently the definition of dirtiness**",
   "main": "discoverAirtableSchema.js",
   "type": "module",
