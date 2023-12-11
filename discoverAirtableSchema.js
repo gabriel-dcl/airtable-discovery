@@ -95,9 +95,10 @@ const acquireSchema = (data) => {
         let fields = ''
         let mappers =
             `export const getMappedData${getFormatedName(table.name)} = (records: any[]) => {\n
-              const data = records.map((item) => item.fields);\n
          const data = records.map((item) => item.fields) \n
          return data.map((item) => { return { \n
+         id: records[key].id, \n
+
         `
         let headers = []
         relationTable += `${getFormatedName(table.name)} = "${table.name}",\n`
