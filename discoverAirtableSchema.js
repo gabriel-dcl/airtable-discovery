@@ -38,8 +38,10 @@ const defineType = (airtableType, options, data) => {
     switch (airtableType) {
         case "autoNumber":
         case "rating":
+        case "percent":
             return "number";
-        case "checkbox": return "boolean";
+        case "checkbox":
+            return "boolean";
         case "multipleSelects": return "string[]";
         case "singleLineText":
         case "multilineText":
@@ -48,6 +50,7 @@ const defineType = (airtableType, options, data) => {
         case "date":
         case "dateTime":
         case "currency":
+        case "url":
         case "formula": return "string"
         case "multipleLookupValues" :
             if(options){
@@ -96,7 +99,7 @@ const acquireSchema = (data) => {
         let mappers =
             `export const getMappedData${getFormatedName(table.name)} = (records: any[]) => {\n
          const data = records.map((item) => item.fields) \n
-         return data.map((item) => { return { \n
+         return data.map((item, key) => { return { \n
          id: records[key].id, \n
 
         `
