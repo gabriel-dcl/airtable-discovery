@@ -39,6 +39,7 @@ const defineType = (airtableType, options, data) => {
         case "autoNumber":
         case "rating":
         case "percent":
+        case"number":
             return "number";
         case "checkbox":
             return "boolean";
@@ -51,7 +52,9 @@ const defineType = (airtableType, options, data) => {
         case "dateTime":
         case "currency":
         case "url":
-        case "formula": return "string"
+        case "createdTime":
+        case "formula":
+            return "string"
         case "multipleLookupValues" :
             if(options){
                 let allFields = []
@@ -61,13 +64,6 @@ const defineType = (airtableType, options, data) => {
 
                 if(rightField)
                     return defineType(rightField.type, rightField.options, data)
-            }
-
-        case "multipleRecordLinks":
-            if(options){
-                const searchedValue = data.tables.find(table => table.id === options.linkedTableId)
-                if(searchedValue)
-                    return `${searchedValue.name}[]`
             }
 
         case "singleSelect":
@@ -84,6 +80,8 @@ const defineType = (airtableType, options, data) => {
 
                 return stringToReturn;
             }
+        case "multipleRecordLinks":
+            return "string[]"
     }
 
     return airtableType;
@@ -110,7 +108,10 @@ const acquireSchema = (data) => {
         table.fields.forEach(field => {
             const type = defineType(field.type, field.options, data);
 
-            if (!type.includes("|"))
+
+            if(type === "string[]")
+                fields += `  ${getFormatedName(field.name)}: ${type};\n`
+            else if (!type.includes("|"))
                 fields += `  ${getFormatedName(field.name)}: ${getFormatedName(type)};\n`
             else
                 fields += `  ${getFormatedName(field.name)}: ${type};\n`
@@ -132,7 +133,7 @@ const acquireSchema = (data) => {
 
             headers.forEach((item) => {
                 if (["singleCollaborator", "multipleAttachments", "multipleCollaborators"].includes(getFormatedName(item)))
-                    finalString += `import { ${getFormatedName(item)} } from "../../types/${getFileName(item)}";\n`
+                    finalString += `import { ${getFormatedName(item)} } from "../../types/${getFormatedName(item)}";\n`
                 else
                     finalString += `import { ${getFormatedName(item)} } from "../../${getFileName(item)}/entities/${getFileName(item)}.entity";\n`
             })
