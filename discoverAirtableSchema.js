@@ -99,7 +99,11 @@ const acquireSchema = (data) => {
          const data = records.map((item) => item.fields) \n
          return data.map((item, key) => { return { \n
          id: records[key].id, \n
-
+        `
+        let reverseMappers =
+            `export const mapData${getFormatedName(table.name)} = (data: any[]) => {\n
+         return data.map((item, key) => { return { \n
+         
         `
         let headers = []
         relationTable += `${getFormatedName(table.name)} = "${table.name}",\n`
@@ -118,6 +122,7 @@ const acquireSchema = (data) => {
 
 
             mappers += `${getFormatedName(field.name)} : item["${field.name}"],\n`
+            reverseMappers += `"${field.name}" : item.${getFormatedName(field.name)} ,\n`
 
 
             if (!type.includes("|")
@@ -148,7 +153,9 @@ const acquireSchema = (data) => {
         finalString += `}\n\n`
 
         mappers += `}})\n  }\n\n`
+        reverseMappers += `}})\n  }\n\n`
         finalString += mappers
+        finalString += reverseMappers
 
         if (process.env.NEXT_PROJECT === 'true') {
 
